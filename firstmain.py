@@ -18,14 +18,6 @@ if _env_rpc:
 CHAIN_ID = 204
 RAW_CONTRACT_ADDRESS = "0x01f9Eb284F94b54CF0854ef3B6FeF69C10babe0C"
 
-# Fallback RPC URLs (kalau primary gagal)
-RPC_FALLBACK = [
-    "https://opbnb-mainnet-rpc.bnbchain.org",
-    "https://opbnb-mainnet.nodereal.io",
-    "https://opbnb.publicnode.com",
-    "https://rpc.opbnb.network",
-]
-
 CONTRACT_ABI = [
     {
         "inputs": [],
@@ -40,22 +32,6 @@ STATE_FILE = "checkin_state.json"
 
 def log(msg):
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
-
-def connect_rpc():
-    """Coba connect ke RPC, fallback ke yang lain kalau gagal"""
-    rpcs_to_try = [RPC_URL] + RPC_FALLBACK if 'RPC_URL' in dir() and RPC_URL else RPC_FALLBACK
-    
-    for rpc in rpcs_to_try:
-        try:
-            w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={'timeout': 10}))
-            if w3.is_connected():
-                log(f"[+] Connected to: {rpc}")
-                return w3
-        except Exception as e:
-            log(f"[!] Failed: {rpc} - {str(e)[:50]}")
-            continue
-    
-    return None
 
 def load_state():
     if os.path.exists(STATE_FILE):
@@ -120,9 +96,9 @@ def process_wallet(w3, contract, private_key, state, today_str):
             log(f"[!] Error for {sender[:10]}...: {e}")
 
 def run_daily_checkin():
-    w3 = connect_rpc()
-    if not w3:
-        log("[-] Unable to connect to opBNB RPC network (all endpoints failed).")
+    w3 = Web3(Web3.HTTPProvider(RPC_URL))
+    if not w3.is_connected():
+        log("[-] Unable to connect to opBNB RPC network.")
         return
 
     contract_address = to_checksum_address(RAW_CONTRACT_ADDRESS)
@@ -130,7 +106,8 @@ def run_daily_checkin():
 
     today_str = str(date.today())
     state = load_state()
-log("=== Starting hiveCheckIn Auto-Run ===")
+
+    log("=== Starting hiveCheckIn Auto-Run ===")
     for idx, pk in enumerate(PRIVATE_KEYS, start=1):
         process_wallet(w3, contract, pk, state, today_str)
         if idx < len(PRIVATE_KEYS):
