@@ -2,8 +2,8 @@ name: Daily Hive Check-In
 
 on:
   schedule:
-    - cron: '0 10 * * *'   # Setiap jam 10:00 UTC = 17:00 WIB
-  workflow_dispatch:         # Manual trigger tetap ada
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   checkin:
