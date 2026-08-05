@@ -18,7 +18,7 @@ if _env_rpc:
 CHAIN_ID = 204
 RAW_CONTRACT_ADDRESS = "0x01f9Eb284F94b54CF0854ef3B6FeF69C10babe0C"
 
-# Fallback RPC URLs
+# Fallback RPC URLs (kalau primary gagal)
 RPC_FALLBACK = [
     "https://opbnb-mainnet-rpc.bnbchain.org",
     "https://opbnb-mainnet.nodereal.io",
@@ -43,31 +43,16 @@ def log(msg):
 
 def connect_rpc():
     """Coba connect ke RPC, fallback ke yang lain kalau gagal"""
-    rpcs_to_try = []
-    
-    # Add primary RPC if exists
-    try:
-        rpcs_to_try.append(RPC_URL)
-    except NameError:
-        pass
-    
-    # Add fallbacks
-    rpcs_to_try.extend(RPC_FALLBACK)
-    
-    log(f"[i] Trying {len(rpcs_to_try)} RPC endpoints...")
+    rpcs_to_try = [RPC_URL] + RPC_FALLBACK if 'RPC_URL' in dir() and RPC_URL else RPC_FALLBACK
     
     for rpc in rpcs_to_try:
         try:
-            log(f"[...] Trying: {rpc}")
-            w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={'timeout': 15}))
+            w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={'timeout': 10}))
             if w3.is_connected():
-                log(f"[+] SUCCESS! Connected to: {rpc}")
+                log(f"[+] Connected to: {rpc}")
                 return w3
-            else:
-                log(f"[!] Connected but not synced: {rpc}")
         except Exception as e:
-            log(f"[!] FAILED: {rpc}")
-            log(f"    Error: {str(e)[:100]}")
+            log(f"[!] Failed: {rpc} - {str(e)[:50]}")
             continue
     
     return None
@@ -133,10 +118,11 @@ def process_wallet(w3, contract, private_key, state, today_str):
             save_state(state)
         else:
             log(f"[!] Error for {sender[:10]}...: {e}")
+
 def run_daily_checkin():
     w3 = connect_rpc()
     if not w3:
-        log("[-] ALL RPC endpoints failed. Check network connection.")
+        log("[-] Unable to connect to opBNB RPC network (all endpoints failed).")
         return
 
     contract_address = to_checksum_address(RAW_CONTRACT_ADDRESS)
@@ -144,8 +130,7 @@ def run_daily_checkin():
 
     today_str = str(date.today())
     state = load_state()
-
-    log("=== Starting hiveCheckIn Auto-Run ===")
+log("=== Starting hiveCheckIn Auto-Run ===")
     for idx, pk in enumerate(PRIVATE_KEYS, start=1):
         process_wallet(w3, contract, pk, state, today_str)
         if idx < len(PRIVATE_KEYS):
