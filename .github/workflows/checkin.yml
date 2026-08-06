@@ -2,7 +2,7 @@ name: Daily Hive Check-In
 
 on:
   schedule:
-    - cron: '0 12 * * *'   # 12:00 UTC = 19:00 WIB
+    - cron: '0 13 * * *'   # 12:00 UTC = 19:00 WIB
   workflow_dispatch:
 
 jobs:
